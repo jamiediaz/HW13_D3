@@ -26,7 +26,7 @@ let chartGroup = svg.append("g")
 //Initial params
 
 let chosenXAxis = "poverty";
-let chosenYAxis = "healthcare";
+let chosenYAxis = "healthcareHigh";
 
 // this function updates the x scale when axis label is clicked
 function xScale(healthData, chosenXAxis) {
@@ -55,8 +55,8 @@ function renderXAxis(newXScale, xAxis) {
 function yScale(healthData, chosenYAxis) {
 
     let yLinearScale = d3.scaleLinear()
-        .domain([d3.min(healthData, d => d[chosenYAxis]) * .3,
-            d3.max(healthData, d => d[chosenYAxis]) * 2
+        .domain([d3.min(healthData, d => d[chosenYAxis]) * .8,
+            d3.max(healthData, d => d[chosenYAxis]) * 1.2
         ])
         .range([height, 0]);
     return yLinearScale;
@@ -75,12 +75,13 @@ function renderYAxis(newYScale, yAxis) {
 
 // function used for updating circles group with a transition to
 // new circles
-function renderCircles(circlesGroup, newXScale, chosenXAxis) {
+function renderCircles(circlesGroup, newXScale, chosenXAxis, newYScale, chosenYAxis) {
 
     circlesGroup.transition()
         .duration(1000)
         .attr("cx", dx => newXScale(dx[chosenXAxis]))
         .attr("cy", dy => newYScale(dy[chosenYAxis]));
+        
     return circlesGroup;
 }
 
@@ -110,9 +111,9 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
     });
 
     let xLinearScale = xScale(healthData, chosenXAxis);
+    let bottomAxis = d3.axisBottom(xLinearScale);
 
     let yLinearScale = yScale(healthData, chosenYAxis);
-    let bottomAxis = d3.axisBottom(xLinearScale);
     let leftAxis = d3.axisLeft(yLinearScale);
 
     // append x axis
@@ -125,6 +126,7 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
     // append y axis
 
     let yAxis = chartGroup.append("g")
+    .classed("y-axis", true)
         .call(leftAxis);
 
 
@@ -138,76 +140,81 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
         .attr("cy", dy => yLinearScale(dy[chosenYAxis]))
         .attr("r", 10)
         .attr("fill", "blue")
+        .text(healthData.abbr)
         .attr("opacity", ".5");
 
     // create group for 3 xaxis labels
-    let labelsGroup = chartGroup.append("g")
+    let labelsGroupX = chartGroup.append("g")
         .attr("transform", `translate(${width /2},${height + 20})`);
 
-    let povertyLabel = labelsGroup.append("text")
+    let labelsGroupY = chartGroup.append("g")
+    .attr("transform", `translate(${width /2},${height +20})`);
+
+    let povertyLabel = labelsGroupX.append("text")
         .attr("x", 0)
         .attr("y", 20)
         .attr("value", "poverty")
         .classed("active", true)
         .text("In Poverty (%)");
 
-    let ageLabel = labelsGroup.append("text")
+    let ageLabel = labelsGroupX.append("text")
         .attr("x", 0)
         .attr("y", 40)
         .attr("value", "age")
-        .attr("inactive", true)
+        .classed("inactive", true)
         .text("Age (Median)");
 
-    let incomeLabel = labelsGroup.append("text")
+    let incomeLabel = labelsGroupX.append("text")
         .attr("x", 0)
         .attr("y", 60)
         .attr("value", "income")
-        .attr("inactive", true)
-        .text("Household Income (Median");
+        .classed("inactive", true)
+        .text("Household Income (Median)");
 
     // create group for 3 yaxis labels
-    let healthcareLabel = labelsGroup.append("text")
-        .attr("transform", "rotate(-90")
-        .attr("y", 0 - margin.left)
-        .attr("x", 0 - (height / 2))
+    let healthcareLabel = labelsGroupY.append("text")
+        .attr("transform", "rotate(-90)")
+        
+        .attr("x", 300)
+        .attr("y", - 280 - margin.left )
         .attr("dy", "1em")
-        .attr("value", "healthcare")
+        .attr("value", "healthcareHigh")
         .classed("active", true)
         .text("Lacks Healthcare (%)");
 
-    let smokesLabel = labelsGroup.append("text")
-        .attr("transform", "rotate(-90")
-        .attr("y", 0 - margin.left)
-        .attr("x", -20 - (height / 2))
+    let smokesLabel = labelsGroupY.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -300 - margin.left )
+        .attr("x", 300)
         .attr("dy", "1em")
-        .attr("value", "smokes")
+        .attr("value", "smokesHigh")
         .classed("inactive", true)
         .text("Smokes (%)");
 
-    let obeseLabel = labelsGroup.append("text")
-        .attr("transform", "rotate(-90")
-        .attr("y", 0 - margin.left)
-        .attr("x", -40 - (height / 2))
+    let obeseLabel = labelsGroupY.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -320 - margin.left )
+        .attr("x", 300)
         .attr("dy", "1em")
-        .attr("value", "obese")
+        .attr("value", "obesityHigh")
         .classed("inactive", true)
         .text("Obese (%)");
 
     // x axis event listener
 
-    labelsGroup.selectAll("text")
+    labelsGroupX.selectAll("text")
         .on("click", function() {
             // get value of selection
-            let value = d3.select(this).attr("value");
-            if (value !== chosenXAxis) {
+            let valueX = d3.select(this).attr("value");
+            if (valueX !== chosenXAxis) {
 
-                chosenXAxis = value;
+                chosenXAxis = valueX;
 
                 xLinearScale = xScale(healthData, chosenXAxis);
 
                 xAxis = renderXAxis(xLinearScale, xAxis);
 
-                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis);
+                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis,yLinearScale, chosenYAxis);
 
                 if (chosenXAxis === "poverty") {
                     povertyLabel
@@ -242,5 +249,53 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
                 }
             }
         })
+        labelsGroupY.selectAll("text")
+        .on("click", function() {
+            // get value of selection
+            let valueY = d3.select(this).attr("value");
+            if (valueY !== chosenYAxis) {
+
+                chosenYAxis = valueY;
+
+                yLinearScale = yScale(healthData, chosenYAxis);
+
+                yAxis = renderYAxis(yLinearScale, yAxis);
+
+                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis,yLinearScale, chosenYAxis);
+
+                if (chosenYAxis === "healthcareHigh") {
+                    healthcareLabel
+                        .classed("active", true)
+                        .classed("inactive", false);
+                    smokesLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                    obeseLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                } else if (chosenYAxis === "smokesHigh") {
+                    smokesLabel
+                        .classed("active", true)
+                        .classed("inactive", false);
+                    healthcareLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                    obeseLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                } else if (chosenYAxis === "obesityHigh") {
+                    obeseLabel
+                        .classed("active", true)
+                        .classed("inactive", false);
+                    healthcareLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                    smokesLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                }
+            }
+        })
+
 
 })
