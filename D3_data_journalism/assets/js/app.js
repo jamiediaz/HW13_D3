@@ -33,7 +33,7 @@ function xScale(healthData, chosenXAxis) {
 
     let xLinearScale = d3.scaleLinear()
         .domain([d3.min(healthData, d => d[chosenXAxis]) * .8,
-            d3.max(healthData, d => d[chosenXAxis]) * 1.2
+        d3.max(healthData, d => d[chosenXAxis]) * 1.2
         ])
         .range([0, width]);
     return xLinearScale;
@@ -56,7 +56,7 @@ function yScale(healthData, chosenYAxis) {
 
     let yLinearScale = d3.scaleLinear()
         .domain([d3.min(healthData, d => d[chosenYAxis]) * .8,
-            d3.max(healthData, d => d[chosenYAxis]) * 1.2
+        d3.max(healthData, d => d[chosenYAxis]) * 1.2
         ])
         .range([height, 0]);
     return yLinearScale;
@@ -81,16 +81,27 @@ function renderCircles(circlesGroup, newXScale, chosenXAxis, newYScale, chosenYA
         .duration(1000)
         .attr("cx", dx => newXScale(dx[chosenXAxis]))
         .attr("cy", dy => newYScale(dy[chosenYAxis]));
-        
+
     return circlesGroup;
 }
 
-d3.csv("assets/data/data.csv").then(function(healthData, err) {
+function renderStates(stateAbbr, newXScale, chosenXAxis, newYScale, chosenYAxis) {
+
+    stateAbbr.transition()
+        .duration(1000)
+        .attr("x", dx => newXScale(dx[chosenXAxis] - .22))
+        .attr("y", dy => newYScale(dy[chosenYAxis]- .2));
+
+    return stateAbbr;
+}
+
+
+d3.csv("assets/data/data.csv").then(function (healthData, err) {
 
     if (err) throw err;
 
     //parse the data
-    healthData.forEach(function(data) {
+    healthData.forEach(function (data) {
         //turn strings to int
         data.poverty = +data.poverty;
         // data.povertyMoe = +data.povertyMoe;
@@ -126,9 +137,14 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
     // append y axis
 
     let yAxis = chartGroup.append("g")
-    .classed("y-axis", true)
+        .classed("y-axis", true)
         .call(leftAxis);
 
+    // extracts the state abbr from and puts it into a list.         
+    let abbrList = [];
+    for (i = 0; i < healthData.length; i++) {
+        abbrList = abbrList.concat(healthData[i].abbr);
+    }
 
     //append initial circles
 
@@ -136,19 +152,32 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
         .data(healthData)
         .enter()
         .append("circle")
-        .attr("cx", dx => xLinearScale(dx[chosenXAxis]))
-        .attr("cy", dy => yLinearScale(dy[chosenYAxis]))
+        .attr("cx", xd => xLinearScale(xd[chosenXAxis]))
+        .attr("cy", yd => yLinearScale(yd[chosenYAxis]))
         .attr("r", 10)
-        .attr("fill", "blue")
-        .text(healthData.abbr)
-        .attr("opacity", ".5");
+        .attr("fill", "skyblue")
+        .attr("opacity", ".5")
+        // .text(d => (d.abbr))
+        .attr("font-size", "20px");
+
+    // console.log(abbrList);
+    let stateAbbr = chartGroup.selectAll("abbr")
+        .data(healthData)
+        .enter()
+        .append("text")
+        .text(d => d.abbr)
+        .attr("x", xd => xLinearScale(xd[chosenXAxis] - .2))
+        .attr("y", yd => yLinearScale(yd[chosenYAxis] - .2))
+
+        .attr("font-size", "10px")
+        .attr("fill", "black");
 
     // create group for 3 xaxis labels
     let labelsGroupX = chartGroup.append("g")
-        .attr("transform", `translate(${width /2},${height + 20})`);
+        .attr("transform", `translate(${width / 2},${height + 20})`);
 
     let labelsGroupY = chartGroup.append("g")
-    .attr("transform", `translate(${width /2},${height +20})`);
+        .attr("transform", `translate(${width / 2},${height + 20})`);
 
     let povertyLabel = labelsGroupX.append("text")
         .attr("x", 0)
@@ -174,9 +203,9 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
     // create group for 3 yaxis labels
     let healthcareLabel = labelsGroupY.append("text")
         .attr("transform", "rotate(-90)")
-        
+
         .attr("x", 300)
-        .attr("y", - 280 - margin.left )
+        .attr("y", - 280 - margin.left)
         .attr("dy", "1em")
         .attr("value", "healthcareHigh")
         .classed("active", true)
@@ -184,7 +213,7 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
 
     let smokesLabel = labelsGroupY.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", -300 - margin.left )
+        .attr("y", -300 - margin.left)
         .attr("x", 300)
         .attr("dy", "1em")
         .attr("value", "smokesHigh")
@@ -193,7 +222,7 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
 
     let obeseLabel = labelsGroupY.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", -320 - margin.left )
+        .attr("y", -320 - margin.left)
         .attr("x", 300)
         .attr("dy", "1em")
         .attr("value", "obesityHigh")
@@ -203,7 +232,7 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
     // x axis event listener
 
     labelsGroupX.selectAll("text")
-        .on("click", function() {
+        .on("click", function () {
             // get value of selection
             let valueX = d3.select(this).attr("value");
             if (valueX !== chosenXAxis) {
@@ -214,7 +243,9 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
 
                 xAxis = renderXAxis(xLinearScale, xAxis);
 
-                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis,yLinearScale, chosenYAxis);
+                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis, yLinearScale, chosenYAxis);
+
+                stateAbbr = renderStates(stateAbbr, xLinearScale, chosenXAxis, yLinearScale, chosenYAxis);
 
                 if (chosenXAxis === "poverty") {
                     povertyLabel
@@ -249,8 +280,8 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
                 }
             }
         })
-        labelsGroupY.selectAll("text")
-        .on("click", function() {
+    labelsGroupY.selectAll("text")
+        .on("click", function () {
             // get value of selection
             let valueY = d3.select(this).attr("value");
             if (valueY !== chosenYAxis) {
@@ -261,8 +292,10 @@ d3.csv("assets/data/data.csv").then(function(healthData, err) {
 
                 yAxis = renderYAxis(yLinearScale, yAxis);
 
-                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis,yLinearScale, chosenYAxis);
-
+                circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis, yLinearScale, chosenYAxis);
+                
+                stateAbbr = renderStates(stateAbbr, xLinearScale, chosenXAxis, yLinearScale, chosenYAxis);
+                
                 if (chosenYAxis === "healthcareHigh") {
                     healthcareLabel
                         .classed("active", true)
